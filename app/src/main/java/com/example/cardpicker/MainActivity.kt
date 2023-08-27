@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
+import androidx.core.graphics.rotationMatrix
 import androidx.core.graphics.withRotation
 import androidx.core.graphics.withScale
 import com.example.cardpicker.MainActivity.Companion.CARD_DISTANCE_ANGLE
@@ -112,8 +113,8 @@ class MainActivity : ComponentActivity() {
                         cardList = cardDataList,
                         chosenCardsPosData = listOf(
                             ChosenCardData(
-                                0.4f,
-                                0.25f,
+                                0.9f,
+                                0.2f,
                                 Offset(0f, 0f),
                                 90f,
                                 0.6f
@@ -323,6 +324,52 @@ fun CardPicker(
             detectTapGestures { offset ->
 
 
+                // ======== DETECT CHOSEN CARD CLICK ========//
+
+
+                for (i in chosenCards.indices) {
+                    val it = chosenCards[i]
+                    val angleInRad = Math
+                        .toRadians(it.rotation.toDouble())
+                        .toFloat()
+                    val x2 = ((it.scale * 118.dp.toPx()) + it.offset.x)
+                    val y2 = ((it.scale * 186.dp.toPx()) + it.offset.y)
+                    val startX = it.offset.x
+                    val endX = ((x2 - it.offset.x) * cos(angleInRad) - (y2 - it.offset.y) * sin(angleInRad)) + it.offset.x
+                    val startY = it.offset.y
+                    val endY = ((x2 - it.offset.x) * sin(angleInRad) + (y2 - it.offset.y) * cos(angleInRad)) + it.offset.y
+
+                    Log.d(
+                        "Rotation Debug",
+                        "ClickOffset: $offset \n CardOffset: ${it.offset} \n" +
+                                "X2 Y2 : $x2 $y2 \n" +
+                                "startX StartY $startX $startY \n" +
+                                "endX endY $endX $endY \n" +
+                                "Rotation: ${it.rotation}"
+                    )
+
+                    val bigX = if (startX>endX) startX else endX
+                    val smallX = if (startX<endX) startX else endX
+                    val bigY = if (startY>endY) startY else endY
+                    val smallY = if (startY<endY) startY else endY
+
+                    if (
+                        offset.x in smallX..bigX
+                        &&
+                        offset.y in smallY..bigY
+                    ) {
+                        Log.d("ChosenCardClick", "Chosen card clicked!")
+                        break;
+
+                    }
+                }
+
+
+                // ======== DETECT CHOSEN CARD CLICK ========//
+
+
+                // ============ DETECT CARD CLICK ============= //
+
                 val tempCards = cards
                     .map { it.copy() }
                     .toMutableList()
@@ -413,6 +460,8 @@ fun CardPicker(
 
 
                 animateKey = animateKey.not()
+
+                // ============ DETECT CARD CLICK ============= //
 
 
             }
