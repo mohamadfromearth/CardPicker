@@ -11,19 +11,24 @@ import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.NativeCanvas
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
@@ -43,7 +48,8 @@ data class Card(
     var endX: Float = 0f,
     var y: Float = 0f,
     var radius: Dp = 500.dp,
-    var rotation: Float = 0f
+    var rotation: Float = 0f,
+    var image: Bitmap? = null
 )
 
 data class ChosenCardData(
@@ -51,7 +57,8 @@ data class ChosenCardData(
     var yPercent: Float,
     var offset: Offset,
     var rotation: Float,
-    var scale: Float
+    var scale: Float,
+    var image: Bitmap? = null
 )
 
 
@@ -66,6 +73,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
+
+
+            var choseCards by remember {
+                mutableStateOf(listOf<ChosenCardData>())
+            }
 
             var cardDataList by remember {
                 mutableStateOf(
@@ -99,13 +111,14 @@ class MainActivity : ComponentActivity() {
 
             val image = ContextCompat.getDrawable(this, R.drawable.card2)!!.toBitmap()
 
+
+
             CardPickerTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
-
 
                     CardPicker(
                         modifier = Modifier.fillMaxSize(),
@@ -116,7 +129,7 @@ class MainActivity : ComponentActivity() {
                                 0.9f,
                                 0.2f,
                                 Offset(0f, 0f),
-                                90f,
+                                45f,
                                 0.6f
                             ),
                             ChosenCardData(
@@ -254,11 +267,6 @@ fun CardPicker(
 
 
 
-
-
-
-
-
             if (animationValue == 1.0f) {
                 playTime = 0
                 isPlaying = false
@@ -334,24 +342,41 @@ fun CardPicker(
                         .toFloat()
                     val x2 = ((it.scale * 118.dp.toPx()) + it.offset.x)
                     val y2 = ((it.scale * 186.dp.toPx()) + it.offset.y)
-                    val startX = it.offset.x
-                    val endX = ((x2 - it.offset.x) * cos(angleInRad) - (y2 - it.offset.y) * sin(angleInRad)) + it.offset.x
-                    val startY = it.offset.y
-                    val endY = ((x2 - it.offset.x) * sin(angleInRad) + (y2 - it.offset.y) * cos(angleInRad)) + it.offset.y
 
-                    Log.d(
-                        "Rotation Debug",
-                        "ClickOffset: $offset \n CardOffset: ${it.offset} \n" +
-                                "X2 Y2 : $x2 $y2 \n" +
-                                "startX StartY $startX $startY \n" +
-                                "endX endY $endX $endY \n" +
-                                "Rotation: ${it.rotation}"
-                    )
 
-                    val bigX = if (startX>endX) startX else endX
-                    val smallX = if (startX<endX) startX else endX
-                    val bigY = if (startY>endY) startY else endY
-                    val smallY = if (startY<endY) startY else endY
+                    val cornerX1 = it.offset.x
+                    val cornerX2 = ((x2 - it.offset.x) * cos(angleInRad) - (it.offset.y - it.offset.y) * sin(
+                        angleInRad
+                    )) + it.offset.x
+
+                    val cornerX3 =  ((it.offset.x - it.offset.x) * cos(angleInRad) - (y2 - it.offset.y) * sin(
+                        angleInRad
+                    )) + it.offset.x
+
+                    val cornerX4 =  ((x2- it.offset.x) * cos(angleInRad) - (y2 - it.offset.y) * sin(
+                        angleInRad
+                    )) + it.offset.x
+
+                    val cornerY1 = it.offset.y
+                    val cornerY2 = ((x2 - it.offset.x) * sin(angleInRad) + (it.offset.y - it.offset.y) * cos(
+                        angleInRad
+                    )) + it.offset.y
+
+                    val cornerY3 = ((it.offset.x - it.offset.x) * sin(angleInRad) + (y2 - it.offset.y) * cos(
+                        angleInRad
+                    )) + it.offset.y
+
+                    val cornerY4 = ((x2 - it.offset.x) * sin(angleInRad) + (y2 - it.offset.y) * cos(
+                        angleInRad
+                    )) + it.offset.y
+
+
+
+
+                    val bigX = listOf(cornerX1,cornerX2,cornerX3,cornerX4).maxOf { it }
+                    val smallX = listOf(cornerX1,cornerX2,cornerX3,cornerX4).minOf { it }
+                    val bigY = listOf(cornerY1,cornerY2,cornerY3,cornerY4).maxOf { it }
+                    val smallY = listOf(cornerY1,cornerY2,cornerY3,cornerY4).minOf { it }
 
                     if (
                         offset.x in smallX..bigX
@@ -363,7 +388,6 @@ fun CardPicker(
 
                     }
                 }
-
 
                 // ======== DETECT CHOSEN CARD CLICK ========//
 
