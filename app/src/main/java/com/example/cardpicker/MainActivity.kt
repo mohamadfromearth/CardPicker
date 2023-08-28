@@ -49,7 +49,7 @@ data class Card(
     var y: Float = 0f,
     var radius: Dp = 500.dp,
     var rotation: Float = 0f,
-    var image: Bitmap? = null
+    var backImage: Bitmap? = null
 )
 
 data class ChosenCardData(
@@ -58,8 +58,15 @@ data class ChosenCardData(
     var offset: Offset,
     var rotation: Float,
     var scale: Float,
-    var image: Bitmap? = null
+    var backImage: Bitmap? = null,
+    var type: ChosenCardType = ChosenCardType.NONE
 )
+
+enum class ChosenCardType {
+    NONE,
+    SELECTED,
+    DISABLED
+}
 
 
 class MainActivity : ComponentActivity() {
@@ -79,37 +86,41 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf(listOf<ChosenCardData>())
             }
 
+            val image = ContextCompat.getDrawable(this, R.drawable.card2)!!.toBitmap()
+            val backImage =
+                ContextCompat.getDrawable(this, R.drawable.baseline_sd_card_24)!!.toBitmap()
+
             var cardDataList by remember {
                 mutableStateOf(
                     listOf(
-                        Card(1f),
-                        Card(2f),
-                        Card(3f),
-                        Card(4f),
-                        Card(5f),
-                        Card(6f),
-                        Card(7f),
-                        Card(8f),
-                        Card(9f),
-                        Card(10f),
-                        Card(11f),
-                        Card(12f),
-                        Card(13f),
-                        Card(14f),
-                        Card(15f),
-                        Card(16f),
-                        Card(17f),
-                        Card(18f),
-                        Card(19f),
-                        Card(20f),
-                        Card(21f),
-                        Card(22f),
+                        Card(1f, backImage = backImage),
+                        Card(2f, backImage = backImage),
+                        Card(3f, backImage = backImage),
+                        Card(4f, backImage = backImage),
+                        Card(5f, backImage = backImage),
+                        Card(6f, backImage = backImage),
+                        Card(7f, backImage = backImage),
+                        Card(8f, backImage = backImage),
+                        Card(9f, backImage = backImage),
+                        Card(10f, backImage = backImage),
+                        Card(11f, backImage = backImage),
+                        Card(12f, backImage = backImage),
+                        Card(13f, backImage = backImage),
+                        Card(14f, backImage = backImage),
+                        Card(15f, backImage = backImage),
+                        Card(16f, backImage = backImage),
+                        Card(17f, backImage = backImage),
+                        Card(18f, backImage = backImage),
+                        Card(19f, backImage = backImage),
+                        Card(20f, backImage = backImage),
+                        Card(21f, backImage = backImage),
+                        Card(22f, backImage = backImage),
                     )
                 )
             }
 
 
-            val image = ContextCompat.getDrawable(this, R.drawable.card2)!!.toBitmap()
+
 
 
 
@@ -126,10 +137,10 @@ class MainActivity : ComponentActivity() {
                         cardList = cardDataList,
                         chosenCardsPosData = listOf(
                             ChosenCardData(
-                                0.9f,
+                                0.5f,
                                 0.2f,
                                 Offset(0f, 0f),
-                                45f,
+                                -76f,
                                 0.6f
                             ),
                             ChosenCardData(
@@ -188,8 +199,8 @@ fun CardPicker(
         mutableStateOf(listOf<ChosenCardData>())
     }
 
-    var chosenCardsCount = remember {
-        0
+    var chosenCardsCount by remember {
+        mutableStateOf(0)
     }
 
 
@@ -208,6 +219,18 @@ fun CardPicker(
     var isPlaying by remember {
         mutableStateOf(true)
     }
+
+
+    var oldCircleCenter by remember {
+        mutableStateOf(Offset(0f, 0f))
+    }
+    var newCircleCenter by remember {
+        mutableStateOf(Offset(0f, 0f))
+    }
+    var circleCenter by remember {
+        mutableStateOf(Offset(0f, 0f))
+    }
+
 
     LaunchedEffect(animateKey) {
         val startTime = withFrameNanos { it }
@@ -266,6 +289,12 @@ fun CardPicker(
             }
 
 
+            circleCenter = Offset(
+                lerp(oldCircleCenter.x, newCircleCenter.x, animationValue),
+                lerp(oldCircleCenter.y, newCircleCenter.y, animationValue)
+            )
+
+
 
             if (animationValue == 1.0f) {
                 playTime = 0
@@ -274,8 +303,8 @@ fun CardPicker(
                 oldChosenCardList = chosenCards
                 if (chosenCards.isNotEmpty()) {
                     Log.d("ChosenCard", "chosen x ${chosenCards[0].offset.x} ")
-
                 }
+                oldCircleCenter = newCircleCenter
             }
             Log.d("Animation", "AnimValue:$animationValue ")
         } while (isPlaying)
@@ -295,10 +324,12 @@ fun CardPicker(
         mutableStateOf(0f)
     }
 
-
-    var circleCenter = remember {
-        Offset(0f, 0f)
+    var canvasHeight by remember {
+        mutableStateOf(0f)
     }
+
+
+
 
     Canvas(modifier = modifier
         .pointerInput(true) {
@@ -335,6 +366,8 @@ fun CardPicker(
                 // ======== DETECT CHOSEN CARD CLICK ========//
 
 
+                var selectedChosedCardIndex = -1
+
                 for (i in chosenCards.indices) {
                     val it = chosenCards[i]
                     val angleInRad = Math
@@ -345,38 +378,39 @@ fun CardPicker(
 
 
                     val cornerX1 = it.offset.x
-                    val cornerX2 = ((x2 - it.offset.x) * cos(angleInRad) - (it.offset.y - it.offset.y) * sin(
-                        angleInRad
-                    )) + it.offset.x
+                    val cornerX2 =
+                        ((x2 - it.offset.x) * cos(angleInRad) - (it.offset.y - it.offset.y) * sin(
+                            angleInRad
+                        )) + it.offset.x
 
-                    val cornerX3 =  ((it.offset.x - it.offset.x) * cos(angleInRad) - (y2 - it.offset.y) * sin(
-                        angleInRad
-                    )) + it.offset.x
+                    val cornerX3 =
+                        ((it.offset.x - it.offset.x) * cos(angleInRad) - (y2 - it.offset.y) * sin(
+                            angleInRad
+                        )) + it.offset.x
 
-                    val cornerX4 =  ((x2- it.offset.x) * cos(angleInRad) - (y2 - it.offset.y) * sin(
+                    val cornerX4 = ((x2 - it.offset.x) * cos(angleInRad) - (y2 - it.offset.y) * sin(
                         angleInRad
                     )) + it.offset.x
 
                     val cornerY1 = it.offset.y
-                    val cornerY2 = ((x2 - it.offset.x) * sin(angleInRad) + (it.offset.y - it.offset.y) * cos(
-                        angleInRad
-                    )) + it.offset.y
+                    val cornerY2 =
+                        ((x2 - it.offset.x) * sin(angleInRad) + (it.offset.y - it.offset.y) * cos(
+                            angleInRad
+                        )) + it.offset.y
 
-                    val cornerY3 = ((it.offset.x - it.offset.x) * sin(angleInRad) + (y2 - it.offset.y) * cos(
-                        angleInRad
-                    )) + it.offset.y
+                    val cornerY3 =
+                        ((it.offset.x - it.offset.x) * sin(angleInRad) + (y2 - it.offset.y) * cos(
+                            angleInRad
+                        )) + it.offset.y
 
                     val cornerY4 = ((x2 - it.offset.x) * sin(angleInRad) + (y2 - it.offset.y) * cos(
                         angleInRad
                     )) + it.offset.y
 
-
-
-
-                    val bigX = listOf(cornerX1,cornerX2,cornerX3,cornerX4).maxOf { it }
-                    val smallX = listOf(cornerX1,cornerX2,cornerX3,cornerX4).minOf { it }
-                    val bigY = listOf(cornerY1,cornerY2,cornerY3,cornerY4).maxOf { it }
-                    val smallY = listOf(cornerY1,cornerY2,cornerY3,cornerY4).minOf { it }
+                    val bigX = listOf(cornerX1, cornerX2, cornerX3, cornerX4).maxOf { it }
+                    val smallX = listOf(cornerX1, cornerX2, cornerX3, cornerX4).minOf { it }
+                    val bigY = listOf(cornerY1, cornerY2, cornerY3, cornerY4).maxOf { it }
+                    val smallY = listOf(cornerY1, cornerY2, cornerY3, cornerY4).minOf { it }
 
                     if (
                         offset.x in smallX..bigX
@@ -384,8 +418,33 @@ fun CardPicker(
                         offset.y in smallY..bigY
                     ) {
                         Log.d("ChosenCardClick", "Chosen card clicked!")
+                        selectedChosedCardIndex = i
                         break;
+                    }
+                }
 
+                if (selectedChosedCardIndex != -1) {
+                    when (chosenCards[selectedChosedCardIndex].type) {
+                        ChosenCardType.NONE -> {
+                            newChosenCardList.forEachIndexed { index, chosenCard ->
+                                if (selectedChosedCardIndex == index) {
+                                    chosenCard.type = ChosenCardType.SELECTED
+                                    oldChosenCardList[index].type = ChosenCardType.SELECTED
+                                    chosenCards[index].type = ChosenCardType.SELECTED
+                                } else {
+                                    if (chosenCard.type == ChosenCardType.NONE) {
+                                        chosenCard.type = ChosenCardType.DISABLED
+                                        oldChosenCardList[index].type = ChosenCardType.DISABLED
+                                        chosenCards[index].type = ChosenCardType.DISABLED
+                                    }
+                                }
+                            }
+                            newChosenCardList = newChosenCardList.toList()
+                        }
+                        ChosenCardType.SELECTED -> {
+
+                        }
+                        ChosenCardType.DISABLED -> Unit
                     }
                 }
 
@@ -442,7 +501,8 @@ fun CardPicker(
                                         chosenCardsPosData[chosenCardsCount].yPercent,
                                         Offset(card.startX, card.y),
                                         card.rotation,
-                                        1f
+                                        1f,
+                                        backImage = card.backImage
                                     )
                                 )
                             }
@@ -450,7 +510,9 @@ fun CardPicker(
                         newChosenCardList = newChosenCardList
                             .toMutableList()
                             .apply {
-                                add(chosenCardsPosData[chosenCardsCount])
+                                add(chosenCardsPosData[chosenCardsCount].apply {
+                                    backImage = card.backImage
+                                })
                             }
                         chosenCardsCount++
                         if (newChosenCardList.isNotEmpty()) Log.d(
@@ -474,6 +536,10 @@ fun CardPicker(
 
                 }
 
+                if (chosenCardsCount == chosenCardsPosData.size) {
+                    newCircleCenter = Offset(0f, canvasHeight + 500.dp.toPx())
+                }
+
 
 
 
@@ -493,7 +559,11 @@ fun CardPicker(
     ) {
 
         drawContext.canvas.nativeCanvas.apply {
-            circleCenter = Offset(width / 2f, height + radius.toPx() / 2f)
+            if (chosenCardsCount < chosenCardsPosData.size) {
+                circleCenter = Offset(width / 2f, height + radius.toPx() / 2f)
+                oldCircleCenter = circleCenter
+                canvasHeight = height.toDp().toPx()
+            }
         }
         maxAngle = CENTER_ANGLE + (cards.size / 2f * CARD_DISTANCE_ANGLE)
         minAngle = CENTER_ANGLE - (cards.size / 2f * CARD_DISTANCE_ANGLE)
@@ -618,7 +688,23 @@ private fun drawChosenCards(
             withScale(it.scale, it.scale, it.offset.x, it.offset.y) {
                 withRotation(it.rotation, it.offset.x, it.offset.y) {
 
-                    drawBitmap(image, it.offset.x, it.offset.y, Paint())
+                    when (it.type) {
+                        ChosenCardType.NONE -> drawBitmap(image, it.offset.x, it.offset.y, Paint())
+                        ChosenCardType.SELECTED -> drawBitmap(
+                            it.backImage!!,
+                            it.offset.x,
+                            it.offset.y,
+                            Paint()
+                        )
+                        ChosenCardType.DISABLED -> drawBitmap(
+                            image,
+                            it.offset.x,
+                            it.offset.y,
+                            Paint().apply {
+                                alpha = 50
+                            })
+                    }
+
 
                 }
             }
@@ -667,7 +753,7 @@ private fun initCardsXRange(
         it.startX = startX
         it.endX = endX
         it.y = y
-        it.rotation = Math.toDegrees(angleInRad.toDouble()).toFloat()
+        it.rotation = Math.toDegrees(angleInRad.toDouble()).toFloat() + 90
 
     }
 
